@@ -50,11 +50,13 @@ function App() {
             <SignupPage
               onNavigateToHome={() => navigateTo('home', '/')}
               onNavigateToLogin={() => navigateTo('login', '/login')}
+              onNavigateToDashboard={() => navigateTo('dashboard', '/dashboard')}
             />
           ) : currentView === 'login' ? (
             <LoginPage
               onNavigateToHome={() => navigateTo('home', '/')}
               onNavigateToSignup={() => navigateTo('signup', '/signup')}
+              onNavigateToDashboard={() => navigateTo('dashboard', '/dashboard')}
             />
           ) : currentView === 'dashboard' ? (
             <DashboardPage
@@ -64,7 +66,11 @@ function App() {
           ) : (
             <>
               {/* Navigation Shell */}
-              <Navbar onNavigateToSignup={() => navigateTo('login', '/login')} />
+              <Navbar
+                onNavigateToSignup={() => navigateTo('signup', '/signup')}
+                onNavigateToLogin={() => navigateTo('login', '/login')}
+                onNavigateToDashboard={() => navigateTo('dashboard', '/dashboard')}
+              />
               {/* Product Visualization Hero */}
               <Hero />
               {/* Trust & Positioning Section */}

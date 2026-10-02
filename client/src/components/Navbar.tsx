@@ -1,18 +1,28 @@
 import { useState, useEffect } from "react"
-import { Sun, Moon, Menu, X, ArrowRight } from "lucide-react"
+import { Sun, Moon, Menu, X, ArrowRight, LayoutDashboard, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
+import { useAuth } from "@/context/AuthContext"
 import logoLight from "@/assets/skill-swap-full-logo.svg"
 import logoDark from "@/assets/skill-swap-full-logo-white.svg"
 
 interface NavbarProps {
   onNavigateToSignup?: () => void
+  onNavigateToLogin?: () => void
+  onNavigateToDashboard?: () => void
 }
 
-export function Navbar({ onNavigateToSignup }: NavbarProps) {
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()
+}
+
+export function Navbar({ onNavigateToSignup, onNavigateToLogin, onNavigateToDashboard }: NavbarProps) {
   const { theme, setTheme } = useTheme()
+  const { user, isAuthenticated, logout } = useAuth()
+
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,7 +30,6 @@ export function Navbar({ onNavigateToSignup }: NavbarProps) {
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Toggle theme if 'd' or 'D' is pressed outside input elements
       const target = e.target as HTMLElement
       if (
         target &&
@@ -44,9 +53,27 @@ export function Navbar({ onNavigateToSignup }: NavbarProps) {
     }
   }, [theme, setTheme])
 
+  /* Close avatar dropdown when clicking outside */
+  useEffect(() => {
+    if (!avatarMenuOpen) return
+    const close = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest("[data-home-avatar-menu]")) setAvatarMenuOpen(false)
+    }
+    document.addEventListener("mousedown", close)
+    return () => document.removeEventListener("mousedown", close)
+  }, [avatarMenuOpen])
+
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
   }
+
+  const handleLogout = async () => {
+    await logout()
+    setAvatarMenuOpen(false)
+  }
+
+  const isRealAvatar = user?.profilePicture && !user.profilePicture.includes("placehold")
 
   return (
     <header className="sticky top-0 z-50 w-full px-4 sm:px-6 lg:px-8 pt-3 pb-2 transition-all duration-200">
@@ -116,21 +143,95 @@ export function Navbar({ onNavigateToSignup }: NavbarProps) {
               )}
             </button>
 
-            <a
-              href="signup"
-              className="hidden sm:inline-flex text-xs font-medium text-[#62666F] dark:text-[#A1A4AC] hover:text-[#111318] dark:hover:text-white px-3 py-1.5 transition-colors"
-            >
-              Sign up
-            </a>
+            {isAuthenticated && user ? (
+              /* User logged in: Avatar + Dropdown */
+              <div className="relative" data-home-avatar-menu>
+                <button
+                  onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
+                  className="flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-xl border border-[#E7E7E4] dark:border-white/10 bg-white/60 dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 transition-all group"
+                  aria-label="Open user menu"
+                  aria-expanded={avatarMenuOpen}
+                >
+                  <div className="w-6.5 h-6.5 rounded-full overflow-hidden border border-[#FFF1EE] flex-shrink-0" style={{ width: 26, height: 26 }}>
+                    {isRealAvatar ? (
+                      <img
+                        src={user.profilePicture}
+                        alt={user.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center" style={{ background: "linear-gradient(135deg,#FF5A4A,#F59E0B)" }}>
+                        <span className="text-white text-[9px] font-bold">{getInitials(user.name)}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-xs font-semibold text-[#111318] dark:text-[#F5F5F5] hidden sm:block">
+                    {user.name.split(" ")[0]}
+                  </span>
+                  <svg
+                    className={`w-3 h-3 text-[#9CA3AF] transition-transform duration-200 ${avatarMenuOpen ? "rotate-180" : ""}`}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
 
-            <Button
-              size="sm"
-              onClick={onNavigateToSignup}
-              className="h-8 px-3.5 text-xs font-semibold bg-[#FF5A4A] hover:bg-[#E0493A] text-white rounded-lg shadow-sm shadow-[#FF5A4A]/20 transition-all hover:-translate-y-0.5"
-            >
-              Start Swapping
-              <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
-            </Button>
+                {/* Dropdown panel */}
+                {avatarMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white dark:bg-[#1A1B1F] border border-[#E5E7EB] dark:border-white/10 shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150 z-50">
+                    <div className="px-4 py-3 border-b border-[#F3F4F6] dark:border-white/10">
+                      <p className="text-xs font-semibold text-[#111827] dark:text-[#F9FAFB] truncate">{user.name}</p>
+                      <p className="text-[11px] text-[#6B7280] dark:text-[#9CA3AF] truncate mt-0.5">{user.email}</p>
+                    </div>
+
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setAvatarMenuOpen(false)
+                          if (onNavigateToDashboard) onNavigateToDashboard()
+                          else window.location.href = "/dashboard"
+                        }}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#111827] dark:text-[#D1D5DB] hover:bg-[#F9FAFB] dark:hover:bg-white/5 transition-colors"
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5 text-[#FF5A4A]" />
+                        Dashboard
+                      </button>
+                    </div>
+
+                    <div className="border-t border-[#F3F4F6] dark:border-white/10 py-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-[#EF4444] hover:bg-[#FEF2F2] dark:hover:bg-[#3B0B0B] transition-colors"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* User not logged in: Sign in & Start Swapping */
+              <>
+                <button
+                  type="button"
+                  onClick={onNavigateToLogin}
+                  className="hidden sm:inline-flex text-xs font-medium text-[#62666F] dark:text-[#A1A4AC] hover:text-[#111318] dark:hover:text-white px-3 py-1.5 transition-colors"
+                >
+                  Sign in
+                </button>
+
+                <Button
+                  size="sm"
+                  onClick={onNavigateToSignup}
+                  className="h-8 px-3.5 text-xs font-semibold bg-[#FF5A4A] hover:bg-[#E0493A] text-white rounded-lg shadow-sm shadow-[#FF5A4A]/20 transition-all hover:-translate-y-0.5"
+                >
+                  Start Swapping
+                  <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                </Button>
+              </>
+            )}
 
             {/* Mobile Hamburger Toggle */}
             <button
@@ -170,6 +271,20 @@ export function Navbar({ onNavigateToSignup }: NavbarProps) {
             >
               Community Stream
             </a>
+
+            {isAuthenticated && user && (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  if (onNavigateToDashboard) onNavigateToDashboard()
+                  else window.location.href = "/dashboard"
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-[#FF5A4A] bg-[#FFF1EE] dark:bg-[#3A1F1B] rounded-lg"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Go to Dashboard
+              </button>
+            )}
 
             {/* Mobile Dark/Light Theme Toggle */}
             <div className="pt-2 border-t border-[#E7E7E4] dark:border-white/10 mt-2 px-3">

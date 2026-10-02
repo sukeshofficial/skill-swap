@@ -138,3 +138,7 @@
 .animate-float-delayed {
   animation: float-delayed 7s ease-in-out 1.5s infinite;
 }
+
+button {
+  cursor: pointer;
+}
